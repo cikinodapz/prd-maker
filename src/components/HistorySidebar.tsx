@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import { History, Trash2, FileText } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -42,60 +41,55 @@ export function HistorySidebar({ onSelect }: HistorySidebarProps) {
 
   return (
     <>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="absolute top-4 right-4 md:top-8 md:right-8"
+      <button 
+        className="btn-secondary bg-white/50 backdrop-blur-sm z-10 py-2 px-4 shadow-sm text-sm"
         onClick={() => setIsOpen(true)}
       >
         <History className="w-4 h-4 mr-2" />
         History PRD
-      </Button>
+      </button>
 
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent className="w-[400px] sm:w-[540px]">
-        <SheetHeader className="mb-6">
-          <SheetTitle>Riwayat PRD</SheetTitle>
-          <SheetDescription>
+        <SheetContent className="w-[400px] sm:w-[540px] bg-background border-l-2 border-indigo-200">
+        <SheetHeader className="mb-6 border-b-2 border-indigo-50 pb-4">
+          <SheetTitle className="text-2xl font-bold font-heading text-primary">Riwayat PRD</SheetTitle>
+          <SheetDescription className="text-muted-foreground">
             Kumpulan PRD yang pernah Anda simpan di browser ini.
           </SheetDescription>
         </SheetHeader>
         
         <ScrollArea className="h-[calc(100vh-120px)] pr-4">
           {history.length === 0 ? (
-            <div className="text-center text-muted-foreground mt-10">
+            <div className="text-center text-muted-foreground mt-10 font-medium bg-white border-2 border-dashed border-indigo-200 rounded-xl p-8">
               Belum ada PRD yang disimpan.
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {history.map((item) => (
                 <div 
                   key={item.id} 
-                  className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors"
+                  className="card-block !p-4 bg-white flex items-center justify-between cursor-pointer group"
                   onClick={() => handleSelect(item.content)}
                 >
                   <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-md">
-                      <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <div className="p-3 bg-indigo-50 group-hover:bg-indigo-100 transition-colors rounded-xl">
+                      <FileText className="w-5 h-5 text-indigo-600" />
                     </div>
                     <div className="truncate">
-                      <p className="text-sm font-medium truncate">
-                        {/* Try to extract a title from content or just use date */}
+                      <p className="text-base font-bold font-heading text-foreground truncate">
                         {item.content.split('\n')[0].replace(/#/g, '').trim() || "PRD Document"}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         {new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                       </p>
                     </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 flex-shrink-0"
+                  <button 
+                    className="p-2 text-rose-400 hover:text-white hover:bg-rose-500 rounded-lg transition-colors flex-shrink-0"
                     onClick={(e) => handleDelete(item.id, e)}
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 </div>
               ))}
             </div>

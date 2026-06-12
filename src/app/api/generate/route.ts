@@ -7,13 +7,40 @@ export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  const { idea, audience, metrics, monetization, roastMode } = await req.json();
+  const { idea, audience, metrics, monetization, roastMode, mode, originalPrd, comments } = await req.json();
 
-  // Determine the prompt based on whether it's a Roast or PRD generation
+  // Determine the prompt based on whether it's a Roast, PRD generation, or Revision
   let systemPrompt = '';
   let userPrompt = '';
 
-  if (roastMode) {
+  if (mode === 'revise') {
+    systemPrompt = `You are an expert SaaS Product Manager and Editor.
+You are given an original Product Requirements Document (PRD) in Markdown format, along with a list of feedback/comments from the user targeting specific sections of that PRD.
+Your task is to REWRITE the PRD by incorporating the user's feedback.
+
+CRITICAL RULES:
+1. ONLY modify the parts of the PRD that the comments explicitly ask to change.
+2. DO NOT rewrite sections that have no feedback, keep them exactly as they were in the original document.
+3. Preserve the exact Markdown structure (headings, lists, bolding) unless the feedback requires changing it.
+4. Output the complete revised PRD. Do not just output the changed sections. Output the full document from start to finish.
+5. Answer in the same language as the original PRD (usually Indonesian).`;
+
+    const feedbackList = comments.map((c: any, index: number) => `
+COMMENT ${index + 1}:
+- Target Text in PRD: "${c.textToRevise}"
+- User Feedback/Instruction: "${c.feedback}"
+`).join("\n");
+
+    userPrompt = `ORIGINAL PRD:
+${originalPrd}
+
+---
+
+USER FEEDBACK / COMMENTS TO APPLY:
+${feedbackList}
+
+Please rewrite the entire PRD applying the feedback above.`;
+  } else if (roastMode) {
     systemPrompt = `You are a brutal, realistic, but helpful Silicon Valley investor and Product Manager. 
 Your goal is to "roast" the user's SaaS idea to find flaws, potential failure points, and suggest ways to pivot or make it more niche.
 Focus on the viability of a Freemium SaaS model for this idea. Keep it concise, punchy, and actionable. Be honest but not purely insulting.

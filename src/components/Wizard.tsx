@@ -1,178 +1,227 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Zap, Target, DollarSign, Rocket } from "lucide-react";
+import { Loader2, Zap, Sparkles, Target, DollarSign, Rocket } from "lucide-react";
 
 interface WizardProps {
   onGenerate: (data: any) => void;
   onRoast: (data: any) => void;
   isLoading: boolean;
+  initialData?: any;
 }
 
-export function Wizard({ onGenerate, onRoast, isLoading }: WizardProps) {
+interface SuggestionData {
+  audiences: string[];
+  metrics: string[];
+  monetizations: string[];
+}
+
+export function Wizard({ onGenerate, onRoast, isLoading, initialData }: WizardProps) {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [suggestions, setSuggestions] = useState<SuggestionData | null>(null);
+
+  const [formData, setFormData] = useState(initialData || {
     idea: "",
     audience: "",
     metrics: "",
     monetization: "",
   });
 
-  const handleNext = () => setStep((s) => Math.min(s + 1, 4));
-  const handleBack = () => setStep((s) => Math.max(s - 1, 1));
-
-  const isStepValid = () => {
-    switch (step) {
-      case 1: return formData.idea.trim().length > 10;
-      case 2: return formData.audience.trim().length > 5;
-      case 3: return formData.metrics.trim().length > 5;
-      case 4: return formData.monetization.trim().length > 5;
-      default: return false;
+  const getSuggestions = async () => {
+    if (formData.idea.trim().length < 10) return;
+    
+    setIsSuggesting(true);
+    try {
+      const res = await fetch('/api/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea: formData.idea }),
+      });
+      
+      if (!res.ok) throw new Error("Failed to get suggestions");
+      
+      const data = await res.json();
+      setSuggestions(data);
+      
+      // Pre-select the first options to make it even easier
+      setFormData(prev => ({
+        ...prev,
+        audience: data.audiences[0] || "",
+        metrics: data.metrics[0] || "",
+        monetization: data.monetizations[0] || "",
+      }));
+      
+      setStep(2);
+    } catch (error) {
+      console.error(error);
+      alert("Gagal mendapatkan saran AI. Silakan coba lagi.");
+    } finally {
+      setIsSuggesting(false);
     }
   };
 
+  const handleBack = () => setStep(1);
+
+  const isStep1Valid = formData.idea.trim().length > 10;
+  const isStep2Valid = formData.audience.trim() !== "" && formData.metrics.trim() !== "" && formData.monetization.trim() !== "";
+
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-xl border-border/50 bg-background/50 backdrop-blur-sm">
-      <CardHeader>
+    <div className="card-block w-full max-w-3xl mx-auto">
+      <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">
-            Build Your SaaS
-          </CardTitle>
-          <div className="text-sm font-medium text-muted-foreground">Step {step} of 4</div>
+          <h2 className="text-2xl font-bold font-heading text-foreground">
+            {step === 1 ? "Ceritakan Ide Anda" : "Pilih Saran AI"}
+          </h2>
+          <div className="text-sm font-bold text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full flex items-center gap-1">
+            <Sparkles className="w-4 h-4" /> AI Assisted
+          </div>
         </div>
-        <CardDescription>
-          Isi detail project Anda untuk menghasilkan PRD kelas profesional.
-        </CardDescription>
+        <p className="text-muted-foreground mb-4">
+          {step === 1 
+            ? "Tuliskan ide atau masalah yang ingin Anda pecahkan. Sisanya biar AI yang urus!" 
+            : "AI telah menganalisis ide Anda. Pilih opsi yang paling relevan di bawah ini."}
+        </p>
         
         {/* Progress Bar */}
-        <div className="w-full h-2 bg-secondary rounded-full mt-4 overflow-hidden">
+        <div className="w-full h-3 bg-indigo-50 rounded-full overflow-hidden">
           <div 
-            className="h-full bg-blue-600 transition-all duration-300 ease-in-out" 
-            style={{ width: `${(step / 4) * 100}%` }}
+            className="h-full bg-primary transition-all duration-300 ease-in-out" 
+            style={{ width: `${(step / 2) * 100}%` }}
           />
         </div>
-      </CardHeader>
+      </div>
       
-      <CardContent className="min-h-[250px]">
+      <div className="min-h-[250px] py-4">
         {step === 1 && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg"><Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" /></div>
-              <h3 className="text-lg font-semibold">Ide & Masalah</h3>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="idea">Apa masalah utama yang mau dipecahkan & ide solusinya?</Label>
-              <Textarea 
+            <div className="space-y-3">
+              <label htmlFor="idea" className="block text-sm font-bold text-foreground">Apa ide atau masalah utama yang mau dipecahkan?</label>
+              <textarea 
                 id="idea" 
                 placeholder="Contoh: Aplikasi pencatat keuangan untuk mahasiswa yang susah nabung. Bisa scan struk belanja..." 
-                className="min-h-[120px] resize-none"
+                className="input-block w-full min-h-[160px] resize-none"
                 value={formData.idea}
                 onChange={(e) => setFormData({ ...formData, idea: e.target.value })}
+                disabled={isSuggesting || isLoading}
               />
+            </div>
+            
+            <div className="pt-4 flex justify-end">
+              <button 
+                className="btn-primary w-full md:w-auto" 
+                onClick={getSuggestions} 
+                disabled={!isStep1Valid || isSuggesting || isLoading}
+                style={{ opacity: (!isStep1Valid || isSuggesting) ? 0.6 : 1 }}
+              >
+                {isSuggesting ? (
+                  <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Menganalisis Ide...</>
+                ) : (
+                  <><Sparkles className="w-5 h-5 mr-2" /> Dapatkan Saran AI</>
+                )}
+              </button>
             </div>
           </div>
         )}
 
-        {step === 2 && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg"><Target className="w-5 h-5 text-green-600 dark:text-green-400" /></div>
-              <h3 className="text-lg font-semibold">Target Audience</h3>
+        {step === 2 && suggestions && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+            {/* Audience Selection */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-lg font-heading">Target Audience</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {suggestions.audiences.map((opt, idx) => (
+                  <div 
+                    key={idx}
+                    onClick={() => setFormData({ ...formData, audience: opt })}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      formData.audience === opt 
+                        ? "border-primary bg-indigo-50 shadow-md" 
+                        : "border-input bg-white hover:border-indigo-300"
+                    }`}
+                  >
+                    <p className="text-sm">{opt}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="audience">Siapa spesifik target penggunanya?</Label>
-              <Textarea 
-                id="audience" 
-                placeholder="Contoh: Mahasiswa umur 18-24 tahun, tinggal di kota besar, yang sering kehabisan uang di akhir bulan..." 
-                className="min-h-[120px] resize-none"
-                value={formData.audience}
-                onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
-              />
-            </div>
-          </div>
-        )}
 
-        {step === 3 && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg"><Rocket className="w-5 h-5 text-orange-600 dark:text-orange-400" /></div>
-              <h3 className="text-lg font-semibold">Goals & Metrics</h3>
+            {/* Metrics Selection */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Rocket className="w-5 h-5 text-indigo-600" />
+                <h3 className="font-bold text-lg font-heading">Goals & Metrics</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {suggestions.metrics.map((opt, idx) => (
+                  <div 
+                    key={idx}
+                    onClick={() => setFormData({ ...formData, metrics: opt })}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      formData.metrics === opt 
+                        ? "border-primary bg-indigo-50 shadow-md" 
+                        : "border-input bg-white hover:border-indigo-300"
+                    }`}
+                  >
+                    <p className="text-sm">{opt}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="metrics">Apa indikator kesuksesan aplikasi ini?</Label>
-              <Textarea 
-                id="metrics" 
-                placeholder="Contoh: 1000 active users di bulan pertama, 50 paid users, retention rate 40%..." 
-                className="min-h-[120px] resize-none"
-                value={formData.metrics}
-                onChange={(e) => setFormData({ ...formData, metrics: e.target.value })}
-              />
-            </div>
-          </div>
-        )}
 
-        {step === 4 && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg"><DollarSign className="w-5 h-5 text-purple-600 dark:text-purple-400" /></div>
-              <h3 className="text-lg font-semibold">Monetization (Freemium)</h3>
+            {/* Monetization Selection */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-lg font-heading">Monetization</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {suggestions.monetizations.map((opt, idx) => (
+                  <div 
+                    key={idx}
+                    onClick={() => setFormData({ ...formData, monetization: opt })}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      formData.monetization === opt 
+                        ? "border-primary bg-indigo-50 shadow-md" 
+                        : "border-input bg-white hover:border-indigo-300"
+                    }`}
+                  >
+                    <p className="text-sm">{opt}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="monetization">Bagaimana model freemium-nya bekerja?</Label>
-              <Textarea 
-                id="monetization" 
-                placeholder="Contoh: Free tier bisa catat manual max 50 per bulan. Pro ($5/mo) bisa scan struk tanpa batas dan export ke Excel..." 
-                className="min-h-[120px] resize-none"
-                value={formData.monetization}
-                onChange={(e) => setFormData({ ...formData, monetization: e.target.value })}
-              />
+
+            <div className="flex flex-col-reverse md:flex-row justify-between border-t border-indigo-50 pt-6 mt-6 gap-4">
+              <button className="btn-secondary w-full md:w-auto" onClick={handleBack} disabled={isLoading}>
+                Kembali Edit Ide
+              </button>
+              
+              <div className="flex flex-col md:flex-row gap-3">
+                <button 
+                  className="btn-primary bg-rose-500 hover:bg-rose-600 text-white w-full md:w-auto" 
+                  onClick={() => onRoast(formData)}
+                  disabled={!isStep2Valid || isLoading}
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
+                  Roast Ide Ini
+                </button>
+                <button 
+                  className="btn-primary w-full md:w-auto"
+                  onClick={() => onGenerate(formData)} 
+                  disabled={!isStep2Valid || isLoading}
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Zap className="w-5 h-5 mr-2" />}
+                  Generate PRD
+                </button>
+              </div>
             </div>
           </div>
         )}
-      </CardContent>
-      
-      <CardFooter className="flex justify-between border-t border-border/50 pt-4">
-        <div>
-          {step > 1 && (
-            <Button variant="outline" onClick={handleBack} disabled={isLoading}>
-              Kembali
-            </Button>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {step === 1 && formData.idea.length > 10 && (
-            <Button 
-              variant="destructive" 
-              onClick={() => onRoast(formData)}
-              disabled={isLoading}
-              className="bg-red-500 hover:bg-red-600"
-            >
-              {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Roast My Idea
-            </Button>
-          )}
-          
-          {step < 4 ? (
-            <Button onClick={handleNext} disabled={!isStepValid() || isLoading}>
-              Lanjut
-            </Button>
-          ) : (
-            <Button 
-              onClick={() => onGenerate(formData)} 
-              disabled={!isStepValid() || isLoading}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-            >
-              {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
-              Generate PRD
-            </Button>
-          )}
-        </div>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }
