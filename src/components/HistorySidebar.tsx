@@ -42,11 +42,14 @@ export function HistorySidebar({ onSelect }: HistorySidebarProps) {
   return (
     <>
       <button 
-        className="btn-secondary bg-white/50 backdrop-blur-sm z-10 py-2 px-4 shadow-sm text-sm"
+        className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors tooltip-trigger relative group"
         onClick={() => setIsOpen(true)}
+        aria-label="Riwayat PRD"
       >
-        <History className="w-4 h-4 mr-2" />
-        History PRD
+        <History className="w-5 h-5" />
+        <span className="absolute -bottom-10 right-0 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          Riwayat PRD
+        </span>
       </button>
 
       <Sheet open={isOpen} onOpenChange={setIsOpen}>

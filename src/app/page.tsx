@@ -1,16 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Wizard } from "@/components/Wizard";
 import { PrdEditor } from "@/components/PrdEditor";
 import { HistorySidebar } from "@/components/HistorySidebar";
 import { useCompletion } from "@ai-sdk/react";
-import { Rocket, FileText, Share2, Sparkles, Target } from "lucide-react";
+import { Rocket, FileText, Share2, Sparkles, Target, User, Briefcase, Code, Zap } from "lucide-react";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { Testimonials } from "@/components/landing/Testimonials";
+import { FAQ } from "@/components/landing/FAQ";
+import { CtaSection } from "@/components/landing/CtaSection";
+import { Footer } from "@/components/landing/Footer";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
+import { WordPullUp } from "@/components/ui/word-pull-up";
 
 export default function Home() {
   const [isGenerated, setIsGenerated] = useState(false);
   const [isRoastMode, setIsRoastMode] = useState(false);
   const [savedFormData, setSavedFormData] = useState<any>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   
   const { completion, complete, isLoading, setCompletion } = useCompletion({
     api: '/api/generate',
@@ -75,22 +92,35 @@ export default function Home() {
         </>
       )}
       
-      {/* Navbar */}
-      <nav className="w-full px-6 py-5 flex items-center justify-between z-20 relative max-w-7xl mx-auto mb-4">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => !isLoading && handleReset()}>
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center transform -rotate-6 shadow-md hover:rotate-0 transition-transform">
-            <Rocket className="w-6 h-6 text-white" />
+      {/* Floating Navbar */}
+      <div className="fixed top-4 left-4 right-4 z-50 flex justify-center pointer-events-none">
+        <nav className={`w-full max-w-5xl px-6 py-3 rounded-2xl flex items-center justify-between pointer-events-auto transition-all duration-500 ease-in-out border ${
+          isScrolled 
+            ? "bg-white/70 backdrop-blur-md border-white/20 shadow-md translate-y-0" 
+            : "bg-white/0 backdrop-blur-none border-white/0 shadow-none translate-y-1"
+        }`}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => !isLoading && handleReset()}>
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center transform -rotate-6 shadow-md hover:rotate-0 transition-transform">
+              <Rocket className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold font-heading text-indigo-950 tracking-tight">PRD Maker</span>
           </div>
-          <span className="text-2xl font-bold font-heading text-indigo-950 tracking-tight">PRD Maker</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <HistorySidebar onSelect={handleLoadHistory} />
-        </div>
-      </nav>
+          <div className="flex items-center gap-6">
+            {!isGenerated && (
+              <div className="hidden md:flex items-center gap-8 text-indigo-950/70 font-medium text-sm">
+                <a href="#fitur" className="hover:text-indigo-600 transition-colors">Fitur</a>
+                <a href="#cara-kerja" className="hover:text-indigo-600 transition-colors">Cara Kerja</a>
+                <a href="#faq" className="hover:text-indigo-600 transition-colors">FAQ</a>
+              </div>
+            )}
+            <HistorySidebar onSelect={handleLoadHistory} />
+          </div>
+        </nav>
+      </div>
 
       {/* Editor Full Width Mode */}
       {isGenerated ? (
-        <div className="max-w-6xl mx-auto px-4 py-4 animate-in fade-in slide-in-from-bottom-8 duration-500">
+        <div className="max-w-6xl mx-auto px-4 py-4 mt-24 animate-in fade-in slide-in-from-bottom-8 duration-500">
           <PrdEditor 
             content={completion} 
             isRoast={isRoastMode} 
@@ -101,7 +131,7 @@ export default function Home() {
         </div>
       ) : (
         /* Landing Page Mode */
-        <div className="max-w-7xl mx-auto px-6 pt-4 pb-24">
+        <div className="max-w-7xl mx-auto px-6 pt-32 pb-24">
           
           {/* Split Hero Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center min-h-[60vh]">
@@ -114,9 +144,9 @@ export default function Home() {
               </div>
               
               <h1 className="text-5xl md:text-6xl xl:text-7xl font-extrabold tracking-tight text-[#1E1B4B] font-heading leading-[1.1]">
-                Build SaaS <br />
+                <WordPullUp text="Build SaaS" delay={100} /> <br />
                 <span className="text-indigo-600 relative inline-block mt-2">
-                  With Confidence
+                  <WordPullUp text="With Confidence" delay={400} />
                   <svg className="absolute w-full h-3 -bottom-2 left-0 text-emerald-400 opacity-80" viewBox="0 0 100 10" preserveAspectRatio="none">
                     <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="4" fill="transparent" strokeLinecap="round" />
                   </svg>
@@ -129,9 +159,9 @@ export default function Home() {
               
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4 text-sm font-bold text-slate-500">
                 <div className="flex -space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-indigo-200 border-2 border-white shadow-sm flex items-center justify-center text-xs">👨‍💻</div>
-                  <div className="w-10 h-10 rounded-full bg-emerald-200 border-2 border-white shadow-sm flex items-center justify-center text-xs">👩‍🎨</div>
-                  <div className="w-10 h-10 rounded-full bg-rose-200 border-2 border-white shadow-sm flex items-center justify-center text-xs">🚀</div>
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 border-2 border-white shadow-sm flex items-center justify-center text-indigo-600"><User className="w-5 h-5" /></div>
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 border-2 border-white shadow-sm flex items-center justify-center text-emerald-600"><Briefcase className="w-5 h-5" /></div>
+                  <div className="w-10 h-10 rounded-full bg-rose-100 border-2 border-white shadow-sm flex items-center justify-center text-rose-600"><Code className="w-5 h-5" /></div>
                 </div>
                 <div className="text-left">
                   <p className="text-[#1E1B4B]">Dipercaya oleh 1,000+ PMs</p>
@@ -159,65 +189,76 @@ export default function Home() {
           </div>
 
           {/* Bento Grid Features Section */}
-          <div className="mt-40">
+          <div id="fitur" className="mt-40 scroll-mt-24">
             <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-100 text-indigo-800 font-bold text-sm shadow-sm mb-4">
+                <Zap className="w-4 h-4 text-indigo-600 fill-indigo-600" />
+                <span>Fitur Unggulan</span>
+              </div>
               <h2 className="text-3xl md:text-5xl font-extrabold font-heading text-[#1E1B4B]">Kenapa Pakai PRD Maker?</h2>
               <p className="text-slate-600 mt-4 text-lg">Semua yang Anda butuhkan untuk merumuskan ide brilian.</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {/* Feature 1 (Wide) */}
-              <div className="card-block bg-white md:col-span-2 group overflow-hidden relative p-8">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-50 rounded-bl-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110" />
-                <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-sm">
+              <SpotlightCard className="md:col-span-2 group p-8" spotlightColor="rgba(99, 102, 241, 0.12)">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-50/50 rounded-bl-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-white border border-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-sm">
                   <Sparkles className="w-8 h-8" />
                 </div>
                 <h3 className="text-2xl font-bold mb-3 font-heading text-[#1E1B4B] relative z-10">AI-Assisted Workflow</h3>
                 <p className="text-slate-600 relative z-10 text-lg leading-relaxed max-w-lg">
                   Tidak perlu memeras otak mengetik manual. Ketik ide kasarnya saja, biar AI merumuskan target audience, matriks, hingga model bisnis secara ajaib.
                 </p>
-              </div>
+              </SpotlightCard>
 
               {/* Feature 2 (Square) */}
-              <div className="card-block bg-white group overflow-hidden relative p-8">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-rose-50 rounded-bl-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110" />
-                <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-sm">
+              <SpotlightCard className="group p-8" spotlightColor="rgba(99, 102, 241, 0.12)">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-50/50 rounded-bl-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-white border border-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-sm">
                   <Target className="w-8 h-8" />
                 </div>
                 <h3 className="text-2xl font-bold mb-3 font-heading text-[#1E1B4B] relative z-10">Validasi Ide Brutal</h3>
                 <p className="text-slate-600 relative z-10">
                   Uji ide Anda dengan mode "Roast". Dapatkan feedback ala investor galak Silicon Valley.
                 </p>
-              </div>
+              </SpotlightCard>
 
               {/* Feature 3 (Square) */}
-              <div className="card-block bg-white group overflow-hidden relative p-8">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-50 rounded-bl-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110" />
-                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-sm">
+              <SpotlightCard className="group p-8" spotlightColor="rgba(99, 102, 241, 0.12)">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-50/50 rounded-bl-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-white border border-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-sm">
                   <FileText className="w-8 h-8" />
                 </div>
                 <h3 className="text-2xl font-bold mb-3 font-heading text-[#1E1B4B] relative z-10">Revisi Inline</h3>
                 <p className="text-slate-600 relative z-10">
                   Komentari tiap baris dokumen layaknya Google Docs, dan minta AI menyesuaikannya.
                 </p>
-              </div>
+              </SpotlightCard>
 
               {/* Feature 4 (Wide) */}
-              <div className="card-block bg-white md:col-span-2 group overflow-hidden relative p-8">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-amber-50 rounded-bl-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110" />
-                <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-sm">
+              <SpotlightCard className="md:col-span-2 group p-8" spotlightColor="rgba(99, 102, 241, 0.12)">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-50/50 rounded-bl-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110" />
+                <div className="w-16 h-16 bg-white border border-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-sm">
                   <Share2 className="w-8 h-8" />
                 </div>
                 <h3 className="text-2xl font-bold mb-3 font-heading text-[#1E1B4B] relative z-10">Export & Bagikan</h3>
                 <p className="text-slate-600 relative z-10 text-lg leading-relaxed max-w-lg">
                   Setelah PRD selesai direvisi, export langsung menjadi format Markdown (.md) atau PDF mulus siap diberikan ke tim developer Anda.
                 </p>
-              </div>
+              </SpotlightCard>
             </div>
           </div>
           
+          <HowItWorks />
+          <Testimonials />
+          <FAQ />
+          <CtaSection />
+          
         </div>
       )}
+      
+      {!isGenerated && <Footer />}
     </main>
   );
 }

@@ -103,6 +103,9 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
@@ -180,4 +183,13 @@
   outline: none;
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
   background: white;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(-50% - 12px)); } /* 12px is half of the gap-6 (24px) */
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
 }

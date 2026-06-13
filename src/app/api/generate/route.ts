@@ -65,7 +65,8 @@ Structure the PRD using Markdown with the following sections:
 5. **Success Metrics (KPIs/OKRs)**: The metrics to track success.
 6. **Recommended Tech Stack & Architecture**: Suggest the best modern tech stack for this SaaS.
 
-Format the output clearly with headings, bullet points, and bold text. Respond primarily in the language of the user's input (Indonesian or English).`;
+Format the output clearly with headings, bullet points, and bold text. Respond primarily in the language of the user's input (Indonesian or English).
+CRITICAL RULE: DO NOT include any conversational filler, greetings, or introductory text. Start your response directly with the first heading (e.g., "# Executive Summary").`;
 
     userPrompt = `Please generate a PRD based on these parameters:
 Idea & Problem to Solve: ${idea}
@@ -75,7 +76,7 @@ Monetization Ideas: ${monetization}`;
   }
 
   const result = streamText({
-    model: google('gemini-2.5-flash-lite'),
+    model: google('gemini-3.1-flash-lite'),
     system: systemPrompt,
     prompt: userPrompt,
   });

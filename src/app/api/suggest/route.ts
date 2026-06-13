@@ -23,7 +23,7 @@ Make the options actionable, specific, and realistic. Provide responses in Indon
 
   try {
     const { object } = await generateObject({
-      model: google('gemini-2.5-flash-lite'),
+      model: google('gemini-3.1-flash-lite'),
       system: systemPrompt,
       prompt: `SaaS Idea: ${idea}`,
       schema: z.object({
