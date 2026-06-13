@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Wizard } from "@/components/Wizard";
 import { PrdEditor } from "@/components/PrdEditor";
 import { HistorySidebar } from "@/components/HistorySidebar";
@@ -13,6 +14,7 @@ import { CtaSection } from "@/components/landing/CtaSection";
 import { Footer } from "@/components/landing/Footer";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { WordPullUp } from "@/components/ui/word-pull-up";
+import { motion } from "framer-motion";
 
 export default function Home() {
   const [isGenerated, setIsGenerated] = useState(false);
@@ -82,7 +84,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen relative bg-[#F5F3FF] overflow-x-hidden font-sans pb-32">
+    <main className="min-h-screen relative bg-[#F5F3FF] overflow-x-hidden font-sans">
       {/* Decorative Background for Landing Page */}
       {!isGenerated && (
         <>
@@ -100,10 +102,10 @@ export default function Home() {
             : "bg-white/0 backdrop-blur-none border-white/0 shadow-none translate-y-1"
         }`}>
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => !isLoading && handleReset()}>
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center transform -rotate-6 shadow-md hover:rotate-0 transition-transform">
-              <Rocket className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 flex items-center justify-center transform hover:scale-105 transition-transform">
+              <Image src="/logo.png" alt="Prodify Logo" width={40} height={40} unoptimized className="w-full h-full object-contain" />
             </div>
-            <span className="text-xl font-bold font-heading text-indigo-950 tracking-tight">PRD Maker</span>
+            <span className="text-xl font-bold font-heading text-indigo-950 tracking-tight">Prodify</span>
           </div>
           <div className="flex items-center gap-6">
             {!isGenerated && (
@@ -120,7 +122,7 @@ export default function Home() {
 
       {/* Editor Full Width Mode */}
       {isGenerated ? (
-        <div className="max-w-6xl mx-auto px-4 py-4 mt-24 animate-in fade-in slide-in-from-bottom-8 duration-500">
+        <div className="max-w-6xl mx-auto px-4 py-4 mt-24 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-500">
           <PrdEditor 
             content={completion} 
             isRoast={isRoastMode} 
@@ -131,13 +133,19 @@ export default function Home() {
         </div>
       ) : (
         /* Landing Page Mode */
-        <div className="max-w-7xl mx-auto px-6 pt-32 pb-24">
+        <>
+          <div className="max-w-7xl mx-auto px-6 pt-32 pb-24">
           
           {/* Split Hero Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center min-h-[60vh]">
             
             {/* Left: Copywriting */}
-            <div className="space-y-8 text-center lg:text-left z-10">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-8 text-center lg:text-left z-10"
+            >
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 text-emerald-800 font-bold text-sm shadow-sm">
                 <Sparkles className="w-4 h-4" />
                 <span>AI-Powered Product Manager</span>
@@ -168,10 +176,15 @@ export default function Home() {
                   <p className="font-normal text-xs">Bergabunglah dengan mereka hari ini!</p>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Right: Interactive App Area */}
-            <div className="z-10 w-full max-w-2xl mx-auto lg:ml-auto">
+            <motion.div 
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="z-10 w-full max-w-2xl mx-auto lg:ml-auto"
+            >
               <div className="relative">
                 {/* Decorative floating blobs behind the Wizard */}
                 <div className="absolute -top-8 -right-8 w-32 h-32 bg-rose-400 rounded-3xl -z-10 transform rotate-12 opacity-40 blur-xl" />
@@ -184,24 +197,37 @@ export default function Home() {
                   initialData={savedFormData}
                 />
               </div>
-            </div>
+            </motion.div>
             
           </div>
 
           {/* Bento Grid Features Section */}
-          <div id="fitur" className="mt-40 scroll-mt-24">
-            <div className="text-center mb-16">
+          <div id="fitur" className="mt-32 scroll-mt-24">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="text-center mb-16"
+            >
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-100 text-indigo-800 font-bold text-sm shadow-sm mb-4">
                 <Zap className="w-4 h-4 text-indigo-600 fill-indigo-600" />
                 <span>Fitur Unggulan</span>
               </div>
-              <h2 className="text-3xl md:text-5xl font-extrabold font-heading text-[#1E1B4B]">Kenapa Pakai PRD Maker?</h2>
+              <h2 className="text-3xl md:text-5xl font-extrabold font-heading text-[#1E1B4B]">Kenapa Pakai Prodify?</h2>
               <p className="text-slate-600 mt-4 text-lg">Semua yang Anda butuhkan untuk merumuskan ide brilian.</p>
-            </div>
+            </motion.div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {/* Feature 1 (Wide) */}
-              <SpotlightCard className="md:col-span-2 group p-8" spotlightColor="rgba(99, 102, 241, 0.12)">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="md:col-span-2"
+              >
+                <SpotlightCard className="h-full group p-8" spotlightColor="rgba(99, 102, 241, 0.12)">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-50/50 rounded-bl-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110" />
                 <div className="w-16 h-16 bg-white border border-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-sm">
                   <Sparkles className="w-8 h-8" />
@@ -210,10 +236,17 @@ export default function Home() {
                 <p className="text-slate-600 relative z-10 text-lg leading-relaxed max-w-lg">
                   Tidak perlu memeras otak mengetik manual. Ketik ide kasarnya saja, biar AI merumuskan target audience, matriks, hingga model bisnis secara ajaib.
                 </p>
-              </SpotlightCard>
+                </SpotlightCard>
+              </motion.div>
 
               {/* Feature 2 (Square) */}
-              <SpotlightCard className="group p-8" spotlightColor="rgba(99, 102, 241, 0.12)">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
+              >
+                <SpotlightCard className="h-full group p-8" spotlightColor="rgba(99, 102, 241, 0.12)">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-50/50 rounded-bl-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110" />
                 <div className="w-16 h-16 bg-white border border-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-sm">
                   <Target className="w-8 h-8" />
@@ -222,10 +255,17 @@ export default function Home() {
                 <p className="text-slate-600 relative z-10">
                   Uji ide Anda dengan mode "Roast". Dapatkan feedback ala investor galak Silicon Valley.
                 </p>
-              </SpotlightCard>
+                </SpotlightCard>
+              </motion.div>
 
               {/* Feature 3 (Square) */}
-              <SpotlightCard className="group p-8" spotlightColor="rgba(99, 102, 241, 0.12)">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
+              >
+                <SpotlightCard className="h-full group p-8" spotlightColor="rgba(99, 102, 241, 0.12)">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-50/50 rounded-bl-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110" />
                 <div className="w-16 h-16 bg-white border border-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-sm">
                   <FileText className="w-8 h-8" />
@@ -234,10 +274,18 @@ export default function Home() {
                 <p className="text-slate-600 relative z-10">
                   Komentari tiap baris dokumen layaknya Google Docs, dan minta AI menyesuaikannya.
                 </p>
-              </SpotlightCard>
+                </SpotlightCard>
+              </motion.div>
 
               {/* Feature 4 (Wide) */}
-              <SpotlightCard className="md:col-span-2 group p-8" spotlightColor="rgba(99, 102, 241, 0.12)">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
+                className="md:col-span-2"
+              >
+                <SpotlightCard className="h-full group p-8" spotlightColor="rgba(99, 102, 241, 0.12)">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-50/50 rounded-bl-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-110" />
                 <div className="w-16 h-16 bg-white border border-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-sm">
                   <Share2 className="w-8 h-8" />
@@ -246,16 +294,18 @@ export default function Home() {
                 <p className="text-slate-600 relative z-10 text-lg leading-relaxed max-w-lg">
                   Setelah PRD selesai direvisi, export langsung menjadi format Markdown (.md) atau PDF mulus siap diberikan ke tim developer Anda.
                 </p>
-              </SpotlightCard>
+                </SpotlightCard>
+              </motion.div>
             </div>
+          </div>
           </div>
           
           <HowItWorks />
           <Testimonials />
           <FAQ />
-          <CtaSection />
-          
-        </div>
+        
+        <CtaSection />
+      </>
       )}
       
       {!isGenerated && <Footer />}

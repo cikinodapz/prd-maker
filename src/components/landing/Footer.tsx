@@ -1,17 +1,18 @@
 import { Rocket, MessageCircle, Code, Briefcase } from "lucide-react";
+import Image from "next/image";
 
 export function Footer() {
   return (
-    <footer className="bg-white border-t border-slate-200 pt-16 pb-8 mt-12 relative z-10">
+    <footer className="bg-white border-t border-slate-200 pt-16 pb-8 relative z-10">
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center transform -rotate-6">
-                <Rocket className="w-4 h-4 text-white" />
+              <div className="w-10 h-10 flex items-center justify-center transform hover:scale-105 transition-transform">
+                <Image src="/logo.png" alt="Prodify Logo" width={40} height={40} unoptimized className="w-full h-full object-contain" />
               </div>
-              <span className="text-xl font-bold font-heading text-indigo-950 tracking-tight">PRD Maker</span>
+              <span className="text-xl font-bold font-heading text-indigo-950 tracking-tight">Prodify</span>
             </div>
             <p className="text-slate-500 mb-6 max-w-sm">
               Alat andalan Product Manager untuk menyusun dokumen spesifikasi produk dengan cepat, terstruktur, dan berbasis AI.
@@ -51,7 +52,7 @@ export function Footer() {
 
         <div className="border-t border-slate-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-slate-500 text-sm">
-            © {new Date().getFullYear()} PRD Maker. Dibuat untuk para Product Manager.
+            © {new Date().getFullYear()} Prodify. Dibuat untuk para Product Manager.
           </p>
         </div>
       </div>
