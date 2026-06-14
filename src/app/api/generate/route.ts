@@ -1,5 +1,7 @@
 import { streamText } from 'ai';
 import { google } from '@ai-sdk/google';
+import { createClient } from '@/lib/supabase/server';
+import { guestRatelimit, freeUserRatelimit } from '@/lib/redis';
 
 // Allow streaming responses up to 60 seconds
 export const maxDuration = 60;
@@ -8,6 +10,24 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   const { idea, audience, metrics, monetization, roastMode, mode, originalPrd, comments } = await req.json();
+
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1';
+
+  if (!session) {
+    const { success } = await guestRatelimit.limit(ip);
+    if (!success) {
+      return new Response('Jatah gratis Anda sebagai Tamu sudah habis (1x/hari). Silakan Login untuk menambah kuota.', { status: 429 });
+    }
+  } else {
+    // Note: We can add subscription tier check here in the future
+    // For now, all authenticated users share the "Free User" limit
+    const { success } = await freeUserRatelimit.limit(session.user.id);
+    if (!success) {
+      return new Response('Kuota harian akun Free Anda sudah habis (3x/hari).', { status: 429 });
+    }
+  }
 
   // Determine the prompt based on whether it's a Roast, PRD generation, or Revision
   let systemPrompt = '';

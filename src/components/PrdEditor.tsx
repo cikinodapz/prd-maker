@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, createContext, useContext } from "react";
+import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Download, RefreshCw, AlertCircle, FileDown, Zap, MessageSquarePlus, Check, X, Sparkles } from "lucide-react";
@@ -10,9 +11,12 @@ import { createClient } from "@/lib/supabase/client";
 interface PrdEditorProps {
   content: string;
   isRoast?: boolean;
+  prdId?: string | null;
+  prdTitle?: string | null;
   onReset: () => void;
   onGeneratePRD?: () => void;
   onRevise?: (comments: any[]) => void;
+  onSaveComplete?: (id: string, title: string) => void;
 }
 
 interface Comment {
@@ -116,13 +120,21 @@ const markdownComponents = {
   li: (props: any) => <CommentableBlock {...props} as="li" />,
 };
 
-export function PrdEditor({ content, isRoast = false, onReset, onGeneratePRD, onRevise }: PrdEditorProps) {
+export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, onGeneratePRD, onRevise, onSaveComplete }: PrdEditorProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [activeCommentNode, setActiveCommentNode] = useState<string | null>(null);
   const [commentInput, setCommentInput] = useState("");
   const [user, setUser] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveTitle, setSaveTitle] = useState("");
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const supabase = createClient();
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -204,29 +216,65 @@ export function PrdEditor({ content, isRoast = false, onReset, onGeneratePRD, on
     }, 500);
   };
 
-  const handleSaveToHistory = async () => {
+  const handleInitiateSave = () => {
     if (isRoast || !user) return;
-    setIsSaving(true);
     
+    // Use existing title if available, otherwise extract from content
+    let defaultTitle = prdTitle || "Untitled PRD";
+    if (!prdTitle) {
+      const headingMatch = content.match(/^#+\s+(.*)/m);
+      if (headingMatch) {
+        defaultTitle = headingMatch[1].trim();
+      } else {
+        const firstLine = content.split('\\n').find(line => line.trim().length > 0);
+        if (firstLine) {
+          defaultTitle = firstLine.substring(0, 60);
+        }
+      }
+    }
+    
+    setSaveTitle(defaultTitle);
+    setShowSaveModal(true);
+  };
+
+  const confirmSave = async () => {
+    if (!saveTitle.trim()) {
+      showToast("Judul tidak boleh kosong.", "error");
+      return;
+    }
+
+    setIsSaving(true);
     try {
-      // Extract title from the first heading 1 (e.g., "# Project Name")
-      const firstLine = content.split('\\n')[0] || "";
-      const titleMatch = firstLine.match(/^#\\s+(.*)/);
-      const title = titleMatch ? titleMatch[1].trim() : "Untitled PRD";
-      const projectName = title.replace(/PRD\\s*-?\\s*/i, "").trim();
+      const titleToSave = saveTitle.trim();
+      const projectName = titleToSave.replace(/PRD\\s*-?\\s*/i, "").trim();
 
-      const { error } = await supabase.from('prds').insert({
-        user_id: user.id,
-        project_name: projectName || "Untitled Project",
-        title: title,
-        content: content,
-      });
+      if (prdId) {
+        // UPDATE existing document
+        const { data, error } = await supabase.from('prds').update({
+          title: titleToSave,
+          content: content,
+        }).eq('id', prdId).select().single();
+        
+        if (error) throw error;
+        if (onSaveComplete && data) onSaveComplete(data.id, data.title);
+      } else {
+        // INSERT new document
+        const { data, error } = await supabase.from('prds').insert({
+          user_id: user.id,
+          project_name: projectName || "Untitled Project",
+          title: titleToSave,
+          content: content,
+        }).select().single();
 
-      if (error) throw error;
-      alert("Berhasil disimpan di Cloud!");
+        if (error) throw error;
+        if (onSaveComplete && data) onSaveComplete(data.id, data.title);
+      }
+
+      setShowSaveModal(false);
+      showToast("Berhasil disimpan di Cloud!", "success");
     } catch (err) {
       console.error(err);
-      alert("Gagal menyimpan dokumen. Silakan coba lagi.");
+      showToast("Gagal menyimpan dokumen. Silakan coba lagi.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -249,11 +297,10 @@ export function PrdEditor({ content, isRoast = false, onReset, onGeneratePRD, on
           <div className="flex flex-wrap justify-end gap-3">
             {!isRoast && content && user && (
               <button 
-                className="btn-secondary py-2 disabled:opacity-50" 
-                onClick={handleSaveToHistory} 
-                disabled={isSaving}
+                className="btn-secondary py-2" 
+                onClick={handleInitiateSave} 
               >
-                {isSaving ? "Menyimpan..." : "Simpan"}
+                Simpan
               </button>
             )}
             <button className="btn-secondary py-2" onClick={handleExportMd}>
@@ -326,6 +373,91 @@ export function PrdEditor({ content, isRoast = false, onReset, onGeneratePRD, on
           )}
         </div>
       </div>
+
+      {/* Modern Custom Save Modal */}
+      {showSaveModal && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md flex flex-col animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h2 className="text-xl font-bold font-heading text-indigo-950">
+                Simpan PRD
+              </h2>
+              <button 
+                onClick={() => !isSaving && setShowSaveModal(false)}
+                className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors"
+                disabled={isSaving}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              <label htmlFor="prd-title" className="block text-sm font-bold text-slate-700 mb-2">
+                Nama Dokumen
+              </label>
+              <input
+                id="prd-title"
+                type="text"
+                autoFocus
+                className="input-block w-full focus:ring-indigo-500 focus:border-indigo-500 font-medium text-slate-800"
+                value={saveTitle}
+                onChange={(e) => setSaveTitle(e.target.value)}
+                placeholder="Masukkan judul PRD..."
+                disabled={isSaving}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !isSaving) {
+                    confirmSave();
+                  }
+                }}
+              />
+              <p className="text-xs text-slate-500 mt-2">
+                Tersimpan aman di cloud pribadi Anda.
+              </p>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-slate-100 bg-slate-50/50 rounded-b-3xl flex justify-end gap-3">
+              <button 
+                className="px-5 py-2.5 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors" 
+                onClick={() => setShowSaveModal(false)}
+                disabled={isSaving}
+              >
+                Batal
+              </button>
+              <button 
+                className="px-6 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors flex items-center justify-center min-w-[120px]" 
+                onClick={confirmSave}
+                disabled={isSaving || !saveTitle.trim()}
+              >
+                {isSaving ? "Menyimpan..." : "Simpan"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Global Toast Notification */}
+      {toast && typeof document !== "undefined" && createPortal(
+        <div className="fixed bottom-6 right-6 z-[200] animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border ${
+            toast.type === 'success' 
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+              : 'bg-rose-50 border-rose-200 text-rose-800'
+          }`}>
+            {toast.type === 'success' ? (
+              <Check className="w-5 h-5 text-emerald-600" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-rose-600" />
+            )}
+            <span className="font-bold text-sm">{toast.message}</span>
+          </div>
+        </div>,
+        document.body
+      )}
     </PrdEditorContext.Provider>
   );
 }

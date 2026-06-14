@@ -22,6 +22,8 @@ export default function Home() {
   const [isRoastMode, setIsRoastMode] = useState(false);
   const [savedFormData, setSavedFormData] = useState<any>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [currentPrdId, setCurrentPrdId] = useState<string | null>(null);
+  const [currentPrdTitle, setCurrentPrdTitle] = useState<string | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -35,6 +37,18 @@ export default function Home() {
   const { completion, complete, isLoading, setCompletion } = useCompletion({
     api: '/api/generate',
     streamProtocol: 'text',
+    onError: (err) => {
+      // Handle Rate Limit (429) or other errors gracefully
+      let errorMessage = err.message;
+      try {
+        const parsed = JSON.parse(err.message);
+        if (parsed.message) errorMessage = parsed.message;
+      } catch (e) {
+        // Not JSON, use as is
+      }
+      alert(`Ups! ${errorMessage || "Terjadi kesalahan saat menghubungi AI."}`);
+      setIsGenerated(false);
+    }
   });
 
   const handleGenerate = async (formData: any) => {
@@ -42,6 +56,8 @@ export default function Home() {
     setIsGenerated(true);
     setSavedFormData(formData);
     setCompletion(""); // Reset previous content
+    setCurrentPrdId(null);
+    setCurrentPrdTitle(null);
     
     await complete("", {
       body: { ...formData, roastMode: false }
@@ -53,6 +69,8 @@ export default function Home() {
     setIsGenerated(true);
     setSavedFormData(formData);
     setCompletion(""); // Reset previous content
+    setCurrentPrdId(null);
+    setCurrentPrdTitle(null);
     
     await complete("", {
       body: { ...formData, roastMode: true }
@@ -76,12 +94,21 @@ export default function Home() {
   const handleReset = () => {
     setIsGenerated(false);
     setCompletion("");
+    setCurrentPrdId(null);
+    setCurrentPrdTitle(null);
   };
 
-  const handleLoadHistory = (content: string) => {
+  const handleLoadHistory = (content: string, id: string, title: string) => {
     setIsRoastMode(false);
     setCompletion(content);
+    setCurrentPrdId(id);
+    setCurrentPrdTitle(title);
     setIsGenerated(true);
+  };
+
+  const handleSaveComplete = (id: string, title: string) => {
+    setCurrentPrdId(id);
+    setCurrentPrdTitle(title);
   };
 
   return (
@@ -128,9 +155,12 @@ export default function Home() {
           <PrdEditor 
             content={completion} 
             isRoast={isRoastMode} 
+            prdId={currentPrdId}
+            prdTitle={currentPrdTitle}
             onReset={handleReset} 
             onGeneratePRD={handleGenerateFromRoast}
             onRevise={handleRevise}
+            onSaveComplete={handleSaveComplete}
           />
         </div>
       ) : (
