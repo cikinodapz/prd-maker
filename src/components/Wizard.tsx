@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Loader2, Zap, Sparkles, Target, DollarSign, Rocket, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 interface WizardProps {
   onGenerate: (data: any) => void;
@@ -21,6 +22,16 @@ export function Wizard({ onGenerate, onRoast, isLoading, initialData }: WizardPr
   const [step, setStep] = useState(1);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionData | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
+    fetchUser();
+  }, []);
 
   const [formData, setFormData] = useState(initialData || {
     idea: "",
@@ -74,6 +85,33 @@ export function Wizard({ onGenerate, onRoast, isLoading, initialData }: WizardPr
   }, [step]);
 
   const handleBack = () => setStep(1);
+
+  const handleAction = async (action: 'generate' | 'roast') => {
+    // Check if user is logged in
+    if (!user) {
+      const hasGenerated = localStorage.getItem("has_generated_guest");
+      if (hasGenerated) {
+        // Limit reached, redirect to login
+        alert("Anda sudah mencoba 1x gratis sebagai Tamu. Silakan login dengan Google untuk lanjut menggunakan Prodify! 🚀");
+        await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+        return;
+      } else {
+        localStorage.setItem("has_generated_guest", "true");
+      }
+    }
+
+    document.body.style.overflow = ""; // Prevent scroll lock bug before navigation
+    if (action === 'generate') {
+      onGenerate(formData);
+    } else {
+      onRoast(formData);
+    }
+  };
 
   const isStep1Valid = formData.idea.trim().length > 10;
   const isStep2Valid = formData.audience.trim() !== "" && formData.metrics.trim() !== "" && formData.monetization.trim() !== "";
@@ -241,7 +279,7 @@ export function Wizard({ onGenerate, onRoast, isLoading, initialData }: WizardPr
               <div className="flex flex-col md:flex-row gap-3">
                 <button 
                   className="w-full md:w-auto px-6 py-3 rounded-xl font-bold transition-all text-rose-600 bg-rose-100 hover:bg-rose-200 focus:ring-4 focus:ring-rose-100 flex items-center justify-center" 
-                  onClick={() => onRoast(formData)}
+                  onClick={() => handleAction('roast')}
                   disabled={!isStep2Valid || isLoading}
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
@@ -249,10 +287,7 @@ export function Wizard({ onGenerate, onRoast, isLoading, initialData }: WizardPr
                 </button>
                 <button 
                   className="btn-primary w-full md:w-auto px-8"
-                  onClick={() => {
-                    document.body.style.overflow = ""; // Prevent scroll lock bug before navigation
-                    onGenerate(formData);
-                  }} 
+                  onClick={() => handleAction('generate')} 
                   disabled={!isStep2Valid || isLoading}
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Zap className="w-5 h-5 mr-2" />}

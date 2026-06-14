@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { History, Trash2, FileText } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { createClient } from "@/lib/supabase/client";
 
 interface PrdHistoryItem {
   id: string;
-  date: string;
+  created_at: string;
+  title: string;
   content: string;
 }
 
@@ -18,20 +20,57 @@ interface HistorySidebarProps {
 export function HistorySidebar({ onSelect }: HistorySidebarProps) {
   const [history, setHistory] = useState<PrdHistoryItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const supabase = createClient();
 
   useEffect(() => {
     if (isOpen) {
-      const saved = JSON.parse(localStorage.getItem("prd_history") || "[]");
-      // Sort by newest first
-      setHistory(saved.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      const fetchHistory = async () => {
+        setIsLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          // Fallback to local storage if not logged in
+          const saved = JSON.parse(localStorage.getItem("prd_history") || "[]");
+          setHistory(saved.sort((a: any, b: any) => new Date(b.date || b.created_at).getTime() - new Date(a.date || a.created_at).getTime()).map((item: any) => ({
+            id: item.id,
+            created_at: item.date || item.created_at,
+            title: item.content.split('\\n')[0].replace(/#/g, '').trim() || "PRD Document",
+            content: item.content
+          })));
+        } else {
+          // Fetch from Supabase
+          const { data, error } = await supabase
+            .from('prds')
+            .select('id, title, content, created_at')
+            .order('created_at', { ascending: false });
+          
+          if (!error && data) {
+            setHistory(data as any);
+          }
+        }
+        setIsLoading(false);
+      };
+      fetchHistory();
     }
   }, [isOpen]);
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const newHistory = history.filter(item => item.id !== id);
-    localStorage.setItem("prd_history", JSON.stringify(newHistory));
-    setHistory(newHistory);
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session) {
+      await supabase.from('prds').delete().eq('id', id);
+      setHistory(history.filter(item => item.id !== id));
+    } else {
+      const newHistory = history.filter(item => item.id !== id);
+      localStorage.setItem("prd_history", JSON.stringify(newHistory.map(item => ({
+        id: item.id,
+        date: item.created_at,
+        content: item.content
+      }))));
+      setHistory(newHistory);
+    }
   };
 
   const handleSelect = (content: string) => {
@@ -57,12 +96,16 @@ export function HistorySidebar({ onSelect }: HistorySidebarProps) {
         <SheetHeader className="mb-6 border-b-2 border-indigo-50 pb-4">
           <SheetTitle className="text-2xl font-bold font-heading text-primary">Riwayat PRD</SheetTitle>
           <SheetDescription className="text-muted-foreground">
-            Kumpulan PRD yang pernah Anda simpan di browser ini.
+            Kumpulan PRD yang pernah Anda simpan di {isLoading ? '...' : (history.length > 0 && history[0]?.id?.length > 20 ? 'Cloud' : 'Browser')}.
           </SheetDescription>
         </SheetHeader>
         
         <ScrollArea className="h-[calc(100vh-120px)] pr-4">
-          {history.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center text-muted-foreground mt-10 font-medium bg-indigo-50/50 border-2 border-dashed border-indigo-200 rounded-xl p-8 animate-pulse">
+              Memuat riwayat PRD...
+            </div>
+          ) : history.length === 0 ? (
             <div className="text-center text-muted-foreground mt-10 font-medium bg-white border-2 border-dashed border-indigo-200 rounded-xl p-8">
               Belum ada PRD yang disimpan.
             </div>
@@ -80,10 +123,10 @@ export function HistorySidebar({ onSelect }: HistorySidebarProps) {
                     </div>
                     <div className="truncate">
                       <p className="text-base font-bold font-heading text-foreground truncate">
-                        {item.content.split('\n')[0].replace(/#/g, '').trim() || "PRD Document"}
+                        {item.title || item.content.split('\n')[0].replace(/#/g, '').trim() || "PRD Document"}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(item.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                        {new Date(item.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                       </p>
                     </div>
                   </div>

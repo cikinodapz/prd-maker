@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Download, RefreshCw, AlertCircle, FileDown, Zap, MessageSquarePlus, Check, X, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { createClient } from "@/lib/supabase/client";
 
 interface PrdEditorProps {
   content: string;
@@ -119,6 +120,17 @@ export function PrdEditor({ content, isRoast = false, onReset, onGeneratePRD, on
   const [comments, setComments] = useState<Comment[]>([]);
   const [activeCommentNode, setActiveCommentNode] = useState<string | null>(null);
   const [commentInput, setCommentInput] = useState("");
+  const [user, setUser] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
+    fetchUser();
+  }, []);
 
   const contextValue = {
     comments, setComments,
@@ -192,16 +204,32 @@ export function PrdEditor({ content, isRoast = false, onReset, onGeneratePRD, on
     }, 500);
   };
 
-  const handleSaveToHistory = () => {
-    if (isRoast) return;
-    const history = JSON.parse(localStorage.getItem("prd_history") || "[]");
-    history.push({
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      content: content,
-    });
-    localStorage.setItem("prd_history", JSON.stringify(history));
-    alert("Berhasil disimpan di Local Storage browser!");
+  const handleSaveToHistory = async () => {
+    if (isRoast || !user) return;
+    setIsSaving(true);
+    
+    try {
+      // Extract title from the first heading 1 (e.g., "# Project Name")
+      const firstLine = content.split('\\n')[0] || "";
+      const titleMatch = firstLine.match(/^#\\s+(.*)/);
+      const title = titleMatch ? titleMatch[1].trim() : "Untitled PRD";
+      const projectName = title.replace(/PRD\\s*-?\\s*/i, "").trim();
+
+      const { error } = await supabase.from('prds').insert({
+        user_id: user.id,
+        project_name: projectName || "Untitled Project",
+        title: title,
+        content: content,
+      });
+
+      if (error) throw error;
+      alert("Berhasil disimpan di Cloud!");
+    } catch (err) {
+      console.error(err);
+      alert("Gagal menyimpan dokumen. Silakan coba lagi.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -219,9 +247,13 @@ export function PrdEditor({ content, isRoast = false, onReset, onGeneratePRD, on
             </p>
           </div>
           <div className="flex flex-wrap justify-end gap-3">
-            {!isRoast && content && (
-              <button className="btn-secondary py-2" onClick={handleSaveToHistory} title="Simpan di Browser">
-                Simpan
+            {!isRoast && content && user && (
+              <button 
+                className="btn-secondary py-2 disabled:opacity-50" 
+                onClick={handleSaveToHistory} 
+                disabled={isSaving}
+              >
+                {isSaving ? "Menyimpan..." : "Simpan"}
               </button>
             )}
             <button className="btn-secondary py-2" onClick={handleExportMd}>

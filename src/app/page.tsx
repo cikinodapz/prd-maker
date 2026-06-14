@@ -15,6 +15,7 @@ import { Footer } from "@/components/landing/Footer";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { WordPullUp } from "@/components/ui/word-pull-up";
 import { motion } from "framer-motion";
+import { AuthButton } from "@/components/AuthButton";
 
 export default function Home() {
   const [isGenerated, setIsGenerated] = useState(false);
@@ -116,6 +117,7 @@ export default function Home() {
               </div>
             )}
             <HistorySidebar onSelect={handleLoadHistory} />
+            <AuthButton />
           </div>
         </nav>
       </div>
