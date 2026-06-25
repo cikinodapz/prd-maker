@@ -5,7 +5,6 @@ import { guestRatelimit, freeUserRatelimit } from '@/lib/redis';
 
 // Allow streaming responses up to 60 seconds
 export const maxDuration = 60;
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
