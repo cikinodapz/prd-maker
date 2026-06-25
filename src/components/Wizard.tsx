@@ -49,7 +49,7 @@ export function Wizard({ onGenerate, onRoast, isLoading, initialData }: WizardPr
       setSuggestions(data);
       
       // Pre-select the first options to make it even easier
-      setFormData(prev => ({
+      setFormData((prev: any) => ({
         ...prev,
         audience: data.audiences[0] || "",
         metrics: data.metrics[0] || "",
