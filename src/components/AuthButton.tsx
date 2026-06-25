@@ -1,44 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { LogOut, User as UserIcon } from "lucide-react";
 import Image from "next/image";
 
 export function AuthButton() {
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+  const { data: session, status } = useSession();
+  const isLoading = status === "loading";
+  const user = session?.user;
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    };
-
-    fetchUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, [supabase.auth]);
-
-  const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+  const handleLogin = () => {
+    signIn("google");
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    signOut();
   };
 
   if (isLoading) {
@@ -49,10 +25,10 @@ export function AuthButton() {
     return (
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 px-3 py-1.5 bg-white/50 border border-slate-200 rounded-full shadow-sm">
-          {user.user_metadata?.avatar_url || user.user_metadata?.picture ? (
+          {user.image ? (
             <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
               <img 
-                src={user.user_metadata.avatar_url || user.user_metadata.picture} 
+                src={user.image} 
                 alt="Avatar" 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
@@ -64,7 +40,7 @@ export function AuthButton() {
             </div>
           )}
           <span className="text-sm font-medium text-slate-700 hidden sm:block">
-            {user.user_metadata?.full_name?.split(" ")[0] || "User"}
+            {user.name?.split(" ")[0] || "User"}
           </span>
           <button 
             onClick={handleLogout}

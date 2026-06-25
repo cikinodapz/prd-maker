@@ -5,7 +5,8 @@ import { createPortal } from "react-dom";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { History, Trash2, FileText } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { createClient } from "@/lib/supabase/client";
+import { useSession } from "next-auth/react";
+import { getPrds, deletePrd } from "@/app/actions/prd-actions";
 
 interface PrdHistoryItem {
   id: string;
@@ -25,66 +26,49 @@ export function HistorySidebar({ onSelect }: HistorySidebarProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const supabase = createClient();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    const checkVisibility = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setIsVisible(true);
-      } else {
-        const saved = JSON.parse(localStorage.getItem("prd_history") || "[]");
-        setIsVisible(saved.length > 0);
-      }
-    };
-    
-    checkVisibility();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session) {
-          setIsVisible(true);
-        } else {
-          const saved = JSON.parse(localStorage.getItem("prd_history") || "[]");
-          setIsVisible(saved.length > 0);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+    if (status === "authenticated") {
+      setIsVisible(true);
+    } else if (status === "unauthenticated") {
+      const saved = JSON.parse(localStorage.getItem("prd_history") || "[]");
+      setIsVisible(saved.length > 0);
+    }
+  }, [status]);
 
   useEffect(() => {
     if (isOpen) {
       const fetchHistory = async () => {
         setIsLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
         
-        if (!session) {
+        if (status === "unauthenticated") {
           // Fallback to local storage if not logged in
           const saved = JSON.parse(localStorage.getItem("prd_history") || "[]");
           setHistory(saved.sort((a: any, b: any) => new Date(b.date || b.created_at).getTime() - new Date(a.date || a.created_at).getTime()).map((item: any) => ({
             id: item.id,
             created_at: item.date || item.created_at,
-            title: item.content.split('\\n')[0].replace(/#/g, '').trim() || "PRD Document",
+            title: item.content.split('\n')[0].replace(/#/g, '').trim() || "PRD Document",
             content: item.content
           })));
-        } else {
-          // Fetch from Supabase
-          const { data, error } = await supabase
-            .from('prds')
-            .select('id, title, content, created_at')
-            .order('created_at', { ascending: false });
+        } else if (status === "authenticated") {
+          // Fetch from Server Action
+          const { data, error } = await getPrds();
           
           if (!error && data) {
-            setHistory(data as any);
+            setHistory(data.map(item => ({
+              id: item.id,
+              created_at: item.createdAt.toISOString(),
+              title: item.title,
+              content: item.content as string
+            })));
           }
         }
         setIsLoading(false);
       };
       fetchHistory();
     }
-  }, [isOpen]);
+  }, [isOpen, status]);
 
   const initiateDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -94,10 +78,9 @@ export function HistorySidebar({ onSelect }: HistorySidebarProps) {
   const confirmDelete = async () => {
     if (!itemToDelete) return;
     setIsDeleting(true);
-    const { data: { session } } = await supabase.auth.getSession();
     
-    if (session) {
-      await supabase.from('prds').delete().eq('id', itemToDelete);
+    if (status === "authenticated") {
+      await deletePrd(itemToDelete);
       setHistory(history.filter(item => item.id !== itemToDelete));
     } else {
       const newHistory = history.filter(item => item.id !== itemToDelete);
@@ -113,7 +96,7 @@ export function HistorySidebar({ onSelect }: HistorySidebarProps) {
   };
 
   const handleSelect = (item: PrdHistoryItem) => {
-    const title = item.title || item.content.split('\\n')[0].replace(/#/g, '').trim() || "PRD Document";
+    const title = item.title || item.content.split('\n')[0].replace(/#/g, '').trim() || "PRD Document";
     onSelect(item.content, item.id, title);
     setIsOpen(false);
   };
@@ -169,7 +152,7 @@ export function HistorySidebar({ onSelect }: HistorySidebarProps) {
                     </div>
                     <div className="truncate">
                       <p className="text-base font-bold font-heading text-slate-800 group-hover:text-indigo-600 transition-colors truncate">
-                        {item.title || item.content.split('\\n')[0].replace(/#/g, '').trim() || "PRD Document"}
+                        {item.title || item.content.split('\n')[0].replace(/#/g, '').trim() || "PRD Document"}
                       </p>
                       <p className="text-xs text-slate-400 font-medium mt-0.5">
                         {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(item.created_at))}

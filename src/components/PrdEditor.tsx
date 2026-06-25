@@ -6,7 +6,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Download, RefreshCw, AlertCircle, FileDown, Zap, MessageSquarePlus, Check, X, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { createClient } from "@/lib/supabase/client";
+import { useSession } from "next-auth/react";
+import { savePrd } from "@/app/actions/prd-actions";
 
 interface PrdEditorProps {
   content: string;
@@ -51,10 +52,10 @@ const CommentableBlock = ({ children, node, as: Tag = "p", className = "" }: any
   return (
     <div className={`group relative rounded-md transition-colors ${existingComment ? 'bg-yellow-50 outline outline-2 outline-yellow-200' : (canComment ? 'hover:bg-indigo-50/50' : '')}`}>
       <Tag className={className}>{children}</Tag>
-      
+
       {canComment && !isCommenting && !existingComment && (
         <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-          <button 
+          <button
             onClick={() => { setActiveCommentNode(rawText); setCommentInput(""); }}
             className="bg-white text-indigo-600 border border-indigo-200 shadow-sm rounded-full p-1.5 hover:bg-indigo-50 transform translate-x-2 -translate-y-2"
             title="Beri instruksi revisi"
@@ -67,7 +68,7 @@ const CommentableBlock = ({ children, node, as: Tag = "p", className = "" }: any
       {existingComment && !isCommenting && (
         <div className="absolute -top-3 -right-2 bg-yellow-100 border border-yellow-300 text-yellow-800 text-xs px-2 py-1 rounded-md shadow-sm flex items-center gap-2 z-10">
           <span className="font-medium truncate max-w-[150px]">{existingComment.feedback}</span>
-          <button 
+          <button
             onClick={() => setComments((c: any[]) => c.filter(x => x.textToRevise !== rawText))}
             className="text-yellow-600 hover:text-yellow-900"
           >
@@ -87,13 +88,13 @@ const CommentableBlock = ({ children, node, as: Tag = "p", className = "" }: any
             rows={2}
           />
           <div className="flex justify-end gap-2 px-3 pb-3 bg-white">
-            <button 
+            <button
               onClick={() => setActiveCommentNode(null)}
               className="text-xs px-3 py-1.5 text-slate-500 hover:bg-slate-100 rounded-md font-medium transition-colors"
             >
               Batal
             </button>
-            <button 
+            <button
               onClick={() => {
                 if (commentInput.trim()) {
                   setComments([...comments, { id: Date.now().toString(), textToRevise: rawText, feedback: commentInput.trim() }]);
@@ -124,25 +125,17 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
   const [comments, setComments] = useState<Comment[]>([]);
   const [activeCommentNode, setActiveCommentNode] = useState<string | null>(null);
   const [commentInput, setCommentInput] = useState("");
-  const [user, setUser] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveTitle, setSaveTitle] = useState("");
-  const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
-  const supabase = createClient();
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+  const { data: session } = useSession();
+  const user = session?.user;
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-    };
-    fetchUser();
-  }, []);
 
   const contextValue = {
     comments, setComments,
@@ -218,7 +211,7 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
 
   const handleInitiateSave = () => {
     if (isRoast || !user) return;
-    
+
     // Use existing title if available, otherwise extract from content
     let defaultTitle = prdTitle || "Untitled PRD";
     if (!prdTitle) {
@@ -232,7 +225,7 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
         }
       }
     }
-    
+
     setSaveTitle(defaultTitle);
     setShowSaveModal(true);
   };
@@ -246,32 +239,20 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
     setIsSaving(true);
     try {
       const titleToSave = saveTitle.trim();
-      const projectName = titleToSave.replace(/PRD\\s*-?\\s*/i, "").trim();
+      const projectName = titleToSave.replace(/PRD\s*-?\s*/i, "").trim();
 
-      if (prdId) {
-        // UPDATE existing document
-        const { data, error } = await supabase.from('prds').update({
-          title: titleToSave,
-          content: content,
-        }).eq('id', prdId).select().single();
-        
-        if (error) throw error;
-        if (onSaveComplete && data) onSaveComplete(data.id, data.title);
-      } else {
-        // INSERT new document
-        const { data, error } = await supabase.from('prds').insert({
-          user_id: user.id,
-          project_name: projectName || "Untitled Project",
-          title: titleToSave,
-          content: content,
-        }).select().single();
+      const { data, error } = await savePrd({
+        id: prdId || undefined,
+        title: titleToSave,
+        projectName: projectName || "Untitled Project",
+        content: content,
+      });
 
-        if (error) throw error;
-        if (onSaveComplete && data) onSaveComplete(data.id, data.title);
-      }
+      if (error) throw new Error(error);
+      if (onSaveComplete && data) onSaveComplete(data.id, data.title);
 
       setShowSaveModal(false);
-      showToast("Berhasil disimpan di Cloud!", "success");
+      showToast("Berhasil disimpan!", "success");
     } catch (err) {
       console.error(err);
       showToast("Gagal menyimpan dokumen. Silakan coba lagi.", "error");
@@ -289,16 +270,16 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
               {isRoast ? "Roast Result" : "Generated PRD"}
             </h2>
             <p className="text-muted-foreground mt-2">
-              {isRoast 
-                ? "Feedback brutal untuk ide SaaS Anda." 
+              {isRoast
+                ? "Feedback brutal untuk ide SaaS Anda."
                 : "Product Requirements Document siap pakai."}
             </p>
           </div>
           <div className="flex flex-wrap justify-end gap-3">
             {!isRoast && content && user && (
-              <button 
-                className="btn-secondary py-2" 
-                onClick={handleInitiateSave} 
+              <button
+                className="btn-secondary py-2"
+                onClick={handleInitiateSave}
               >
                 Simpan
               </button>
@@ -323,20 +304,20 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
             </button>
           </div>
         </div>
-        
+
         <div className="pt-6 flex-1 relative">
           {isRoast && (
-             <div className="mb-6 p-4 bg-rose-50 border-l-4 border-rose-500 rounded-r-lg">
-               <div className="flex items-center gap-2 text-rose-700 font-bold mb-1">
-                 <AlertCircle className="h-5 w-5" />
-                 <h4>Warning!</h4>
-               </div>
-               <p className="text-rose-600 text-sm">
-                 Ini adalah mode Roast. Feedback di bawah mungkin terasa pedas, tapi ini untuk memastikan ide Anda benar-benar valid sebelum membuang waktu dan biaya.
-               </p>
-             </div>
+            <div className="mb-6 p-4 bg-rose-50 border-l-4 border-rose-500 rounded-r-lg">
+              <div className="flex items-center gap-2 text-rose-700 font-bold mb-1">
+                <AlertCircle className="h-5 w-5" />
+                <h4>Warning!</h4>
+              </div>
+              <p className="text-rose-600 text-sm">
+                Ini adalah mode Roast. Feedback di bawah mungkin terasa pedas, tapi ini untuk memastikan ide Anda benar-benar valid sebelum membuang waktu dan biaya.
+              </p>
+            </div>
           )}
-          
+
           <ScrollArea className="h-[600px] w-full pr-4 pb-16">
             <div id="prd-content-export" className="prose prose-slate max-w-none prose-headings:font-heading prose-headings:font-bold prose-h1:text-4xl prose-a:text-primary">
               {content ? (
@@ -357,7 +338,7 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
                 <span className="font-bold text-sm text-indigo-800">
                   {comments.length} Komentar Revisi
                 </span>
-                <button 
+                <button
                   onClick={() => {
                     onRevise?.(comments);
                     setComments([]);
@@ -378,13 +359,13 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
       {showSaveModal && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md flex flex-col animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold font-heading text-indigo-950">
                 Simpan PRD
               </h2>
-              <button 
+              <button
                 onClick={() => !isSaving && setShowSaveModal(false)}
                 className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors"
                 disabled={isSaving}
@@ -420,15 +401,15 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
 
             {/* Modal Footer */}
             <div className="p-6 border-t border-slate-100 bg-slate-50/50 rounded-b-3xl flex justify-end gap-3">
-              <button 
-                className="px-5 py-2.5 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors" 
+              <button
+                className="px-5 py-2.5 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors"
                 onClick={() => setShowSaveModal(false)}
                 disabled={isSaving}
               >
                 Batal
               </button>
-              <button 
-                className="px-6 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors flex items-center justify-center min-w-[120px]" 
+              <button
+                className="px-6 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors flex items-center justify-center min-w-[120px]"
                 onClick={confirmSave}
                 disabled={isSaving || !saveTitle.trim()}
               >
@@ -443,11 +424,10 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
       {/* Global Toast Notification */}
       {toast && typeof document !== "undefined" && createPortal(
         <div className="fixed bottom-6 right-6 z-[200] animate-in fade-in slide-in-from-bottom-5 duration-300">
-          <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border ${
-            toast.type === 'success' 
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+          <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border ${toast.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
               : 'bg-rose-50 border-rose-200 text-rose-800'
-          }`}>
+            }`}>
             {toast.type === 'success' ? (
               <Check className="w-5 h-5 text-emerald-600" />
             ) : (

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Loader2, Zap, Sparkles, Target, DollarSign, Rocket, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { signIn, useSession } from "next-auth/react";
 
 interface WizardProps {
   onGenerate: (data: any) => void;
@@ -22,16 +22,8 @@ export function Wizard({ onGenerate, onRoast, isLoading, initialData }: WizardPr
   const [step, setStep] = useState(1);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionData | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const supabase = createClient();
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-    };
-    fetchUser();
-  }, []);
+  const { data: session } = useSession();
+  const user = session?.user;
 
   const [formData, setFormData] = useState(initialData || {
     idea: "",
@@ -87,23 +79,20 @@ export function Wizard({ onGenerate, onRoast, isLoading, initialData }: WizardPr
   const handleBack = () => setStep(1);
 
   const handleAction = async (action: 'generate' | 'roast') => {
-    // Check if user is logged in
-    if (!user) {
-      const hasGenerated = localStorage.getItem("has_generated_guest");
-      if (hasGenerated) {
-        // Limit reached, redirect to login
-        alert("Anda sudah mencoba 1x gratis sebagai Tamu. Silakan login dengan Google untuk lanjut menggunakan Prodify! 🚀");
-        await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: `${window.location.origin}/auth/callback`,
-          },
-        });
-        return;
-      } else {
-        localStorage.setItem("has_generated_guest", "true");
-      }
-    }
+    // // Check if user is logged in
+    // if (!user) {
+    //   const hasGenerated = localStorage.getItem("has_generated_guest");
+    //   if (hasGenerated) {
+    //     // Limit reached, redirect to login
+    //     alert("Anda sudah mencoba 1x gratis sebagai Tamu. Silakan login dengan Google untuk lanjut menggunakan Prodify! 🚀");
+    //     await signIn("google", {
+    //       callbackUrl: `${window.location.origin}`,
+    //     });
+    //     return;
+    //   } else {
+    //     localStorage.setItem("has_generated_guest", "true");
+    //   }
+    // }
 
     document.body.style.overflow = ""; // Prevent scroll lock bug before navigation
     if (action === 'generate') {
