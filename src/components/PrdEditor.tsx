@@ -169,6 +169,7 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
                 >
                   <PanelRightOpen className="w-4 h-4" />
                   <span className="hidden md:inline">AI Assistant</span>
+                  <span className="inline md:hidden">Chat AI</span>
                 </button>
               )}
               
@@ -194,7 +195,7 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
           </div>
 
           {/* Editor Area */}
-          <div className="flex-1 overflow-hidden flex flex-col relative print:overflow-visible">
+          <div className="flex-1 flex flex-col relative print:overflow-visible">
             {isRoast && (
               <div className="mb-4 p-3 bg-rose-50 border-l-4 border-rose-500 rounded-r-lg">
                 <div className="flex items-center gap-2 text-rose-700 font-bold mb-1">
@@ -225,17 +226,32 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
 
       {/* AI Sidebar */}
       {!isRoast && (
-        <div className={`md:block transition-all duration-500 ease-in-out sticky top-24 origin-right ${isChatOpen ? 'md:w-1/3 opacity-100 translate-x-0' : 'w-0 overflow-hidden opacity-0 translate-x-8'}`}>
-          <div className="card-block h-[calc(100vh-120px)] min-h-[400px] p-0 overflow-hidden relative flex flex-col shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-200/60">
-            <AiChatSidebar 
-              documentContext={localContent} 
-              onApplySnippet={handleApplySnippet} 
-              onReplaceEntireDocument={handleReplaceEntireDocument}
-              isOpen={isChatOpen} 
-              onClose={() => setIsChatOpen(false)}
-            />
+        <>
+          {/* Mobile Backdrop */}
+          <div 
+            className={`md:hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${isChatOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            onClick={() => setIsChatOpen(false)}
+          />
+
+          <div className={`
+            z-50 transition-all duration-500 ease-out
+            fixed inset-x-0 bottom-0 md:sticky md:top-24
+            ${isChatOpen 
+              ? 'md:w-1/3 translate-y-0 md:translate-x-0 opacity-100' 
+              : 'md:w-0 translate-y-full md:translate-y-0 md:translate-x-8 opacity-0 pointer-events-none md:overflow-hidden'
+            }
+          `}>
+            <div className="card-block bg-white w-full p-0 overflow-hidden relative flex flex-col shadow-2xl md:shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-200/60 h-[85vh] md:h-[calc(100vh-120px)] md:min-h-[400px] rounded-t-3xl rounded-b-none md:rounded-2xl">
+              <AiChatSidebar 
+                documentContext={localContent} 
+                onApplySnippet={handleApplySnippet} 
+                onReplaceEntireDocument={handleReplaceEntireDocument}
+                isOpen={isChatOpen} 
+                onClose={() => setIsChatOpen(false)}
+              />
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Scroll to Top Button */}
