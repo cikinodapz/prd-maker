@@ -83,14 +83,7 @@ export default function Home() {
     }
   };
 
-  const handleRevise = async (comments: any[]) => {
-    const currentPrd = completion;
-    setCompletion(""); // Reset previous content to show generating state
-    await complete("", {
-      body: { mode: 'revise', originalPrd: currentPrd, comments }
-    });
-  };
-
+  // onRevise is now handled locally by AiChatSidebar in PrdEditor
   const handleReset = () => {
     setIsGenerated(false);
     setCompletion("");
@@ -112,7 +105,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen relative bg-[#F5F3FF] overflow-x-hidden font-sans">
+    <main className="min-h-screen relative bg-[#F5F3FF] overflow-x-clip font-sans">
       {/* Decorative Background for Landing Page */}
       {!isGenerated && (
         <>
@@ -159,7 +152,6 @@ export default function Home() {
             prdTitle={currentPrdTitle}
             onReset={handleReset} 
             onGeneratePRD={handleGenerateFromRoast}
-            onRevise={handleRevise}
             onSaveComplete={handleSaveComplete}
           />
         </div>
