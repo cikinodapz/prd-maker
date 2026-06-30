@@ -8,11 +8,12 @@ import ReactMarkdown from 'react-markdown';
 interface AiChatSidebarProps {
   documentContext: string;
   onApplySnippet: (text: string) => void;
+  onReplaceEntireDocument: (text: string) => void;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function AiChatSidebar({ documentContext, onApplySnippet, isOpen, onClose }: AiChatSidebarProps) {
+export function AiChatSidebar({ documentContext, onApplySnippet, onReplaceEntireDocument, isOpen, onClose }: AiChatSidebarProps) {
   const [localInput, setLocalInput] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -134,22 +135,41 @@ export function AiChatSidebar({ documentContext, onApplySnippet, isOpen, onClose
                 )}
               </div>
 
-              {/* Premium Apply Button */}
+              {/* Action Buttons */}
               {m.role === 'assistant' && m.content.includes('```') && !isLoading && (
-                <button
-                  onClick={() => {
-                    const match = m.content.match(/```(?:markdown)?\n([\s\S]*?)```/);
-                    if (match && match[1]) {
-                      onApplySnippet(match[1].trim());
-                    } else {
-                      onApplySnippet(m.content);
-                    }
-                  }}
-                  className="mt-1 group flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm hover:border-indigo-300 hover:bg-indigo-50 transition-all text-xs font-semibold text-slate-600 hover:text-indigo-700"
-                >
-                  <Check className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600" />
-                  <span>Terapkan ke Editor</span>
-                </button>
+                <div className="flex gap-2">
+                  {m.content.includes('```markdown-full') ? (
+                    <button
+                      onClick={() => {
+                        const match = m.content.match(/```(?:markdown-full)\n([\s\S]*?)```/);
+                        if (match && match[1]) {
+                          onReplaceEntireDocument(match[1].trim());
+                        } else {
+                          onReplaceEntireDocument(m.content.replace(/```markdown-full/g, '').replace(/```/g, '').trim());
+                        }
+                      }}
+                      className="mt-1 flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg text-xs font-semibold hover:bg-rose-100 transition-colors border border-rose-200"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      Terapkan Seluruh Revisi (Replace)
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        const match = m.content.match(/```(?:markdown)?\n([\s\S]*?)```/);
+                        if (match && match[1]) {
+                          onApplySnippet(match[1].trim());
+                        } else {
+                          onApplySnippet(m.content.replace(/```markdown/g, '').replace(/```/g, '').trim());
+                        }
+                      }}
+                      className="mt-1 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-medium hover:bg-indigo-100 transition-colors"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      Apply ke Editor
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>

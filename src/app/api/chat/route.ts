@@ -14,9 +14,10 @@ ${documentContext ? documentContext : "(Dokumen masih kosong)"}
 Tugas Anda:
 - Menjawab pertanyaan terkait PRD atau manajemen produk.
 - Memberikan saran perbaikan atau tambahan teks.
-- Jika pengguna meminta Anda untuk merevisi atau menambahkan bagian pada PRD, JANGAN kembalikan seluruh dokumen! Cukup berikan Teks/Bagian Markdown spesifik yang perlu ditambahkan atau diubah.
+- Jika pengguna meminta Anda untuk merevisi, mengedit, atau menghapus paragraf tertentu dalam skala besar, Anda HARUS me-rewrite seluruh isi dokumen yang sudah direvisi ke dalam blok \`\`\`markdown-full ... \`\`\`.
+- Jika pengguna hanya minta ide atau tambahan teks yang bisa disisipkan, gunakan blok \`\`\`markdown ... \`\`\`.
 - Gunakan bahasa Indonesia yang profesional namun santai (ala startup tech).
-- Format jawaban Anda sejelas mungkin. Jika memberikan teks untuk dimasukkan ke dokumen, gunakan format markdown blocks.`;
+- Format jawaban Anda sejelas mungkin.`;
 
     const result = streamText({
       model: google('gemini-2.5-flash'),

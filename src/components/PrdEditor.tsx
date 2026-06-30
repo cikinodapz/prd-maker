@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Download, RefreshCw, AlertCircle, FileDown, Zap, Check, X, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { Download, RefreshCw, AlertCircle, FileDown, Zap, Check, X, PanelRightClose, PanelRightOpen, ArrowUp } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { savePrd } from "@/app/actions/prd-actions";
 import { TiptapEditor } from "./TiptapEditor";
@@ -28,6 +28,19 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
   const [saveTitle, setSaveTitle] = useState("");
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const { data: session } = useSession();
   const user = session?.user;
   
@@ -131,6 +144,11 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
     }
   };
 
+  const handleReplaceEntireDocument = (newContent: string) => {
+    setLocalContent(newContent);
+    showToast("Seluruh dokumen berhasil diperbarui!", "success");
+  };
+
   return (
     <div className="w-full flex flex-col md:flex-row gap-6 relative items-start">
       {/* Main Canvas */}
@@ -212,11 +230,23 @@ export function PrdEditor({ content, isRoast = false, prdId, prdTitle, onReset, 
             <AiChatSidebar 
               documentContext={localContent} 
               onApplySnippet={handleApplySnippet} 
+              onReplaceEntireDocument={handleReplaceEntireDocument}
               isOpen={isChatOpen} 
               onClose={() => setIsChatOpen(false)}
             />
           </div>
         </div>
+      )}
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className={`fixed bottom-8 z-50 p-3 bg-white text-indigo-600 rounded-full shadow-xl border border-indigo-100 hover:bg-indigo-50 hover:scale-110 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${isChatOpen ? 'right-8 md:right-[calc(33.333%+2rem)]' : 'right-8'}`}
+          title="Ke Atas"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </button>
       )}
 
       {/* Modern Custom Save Modal */}
